@@ -1,8 +1,9 @@
-export type Tab = 'stream-report' | 'rigs' | 'shopping';
+export type Tab = 'stream-report' | 'rigs' | 'tackle-box' | 'shopping';
 
 type Props = {
   active: Tab;
   onChange: (tab: Tab) => void;
+  tackleBoxCount?: number;
 };
 
 function IconStream({ color }: { color: string }) {
@@ -25,6 +26,18 @@ function IconRigs({ color }: { color: string }) {
   );
 }
 
+function IconTackleBox({ color }: { color: string }) {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="2" />
+      <path d="M12 10c0 -4 -3 -6 -6 -6" />
+      <path d="M12 10c0 -4 3 -6 6 -6" />
+      <path d="M12 14c0 3 -2 5 -5 5" />
+      <path d="M12 14c0 3 2 5 5 5" />
+    </svg>
+  );
+}
+
 function IconShopping({ color }: { color: string }) {
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -35,12 +48,13 @@ function IconShopping({ color }: { color: string }) {
 }
 
 const tabs: { id: Tab; label: string }[] = [
-  { id: 'stream-report', label: 'STREAM REPORT' },
+  { id: 'stream-report', label: 'REPORT' },
   { id: 'rigs', label: 'RIGS' },
-  { id: 'shopping', label: 'SHOPPING' },
+  { id: 'tackle-box', label: 'BOX' },
+  { id: 'shopping', label: 'SHOP' },
 ];
 
-export function BottomNav({ active, onChange }: Props) {
+export function BottomNav({ active, onChange, tackleBoxCount }: Props) {
   return (
     <nav
       className="fixed bottom-0 left-0 right-0 z-30 bg-card-bg border-t border-card-border"
@@ -75,11 +89,12 @@ export function BottomNav({ active, onChange }: Props) {
               key={t.id}
               type="button"
               onClick={() => onChange(t.id)}
-              className="flex-1 flex flex-col items-center justify-center gap-1"
+              className="flex-1 flex flex-col items-center justify-center gap-1 relative"
               aria-current={isActive ? 'page' : undefined}
             >
               {t.id === 'stream-report' && <IconStream color={color} />}
               {t.id === 'rigs' && <IconRigs color={color} />}
+              {t.id === 'tackle-box' && <IconTackleBox color={color} />}
               {t.id === 'shopping' && <IconShopping color={color} />}
               <span
                 className={`text-[10px] tracking-[0.14em] ${
@@ -88,6 +103,11 @@ export function BottomNav({ active, onChange }: Props) {
               >
                 {t.label}
               </span>
+              {t.id === 'tackle-box' && typeof tackleBoxCount === 'number' && tackleBoxCount > 0 && (
+                <span className="absolute top-1 right-[calc(50%-18px)] min-w-[16px] h-4 px-1 rounded-full bg-accent-green text-header-text text-[9px] font-semibold flex items-center justify-center">
+                  {tackleBoxCount}
+                </span>
+              )}
             </button>
           );
         })}

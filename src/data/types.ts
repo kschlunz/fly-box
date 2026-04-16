@@ -69,3 +69,54 @@ export type Forecast = {
   low: number;
   hourly: ForecastHour[];
 };
+
+export type TackleBoxFly = {
+  id: string;
+  name: string;
+  normalizedName: string;
+  size: string | null;
+  role: FlyRole;
+  category: string;
+  colors: string | null;
+  description: string | null;
+  primaryPhotoUrl: string;
+  photoQualityScore: number;
+  count: number;
+  photoCount: number;
+  notes: string | null;
+  firstIdentifiedAt: string;
+  lastIdentifiedAt: string;
+};
+
+export type TackleBoxPhoto = {
+  id: string;
+  photoUrl: string;
+  qualityScore: number;
+  isPrimary: boolean;
+  createdAt: string;
+};
+
+export type IdentifyResponse = {
+  identification: {
+    name: string;
+    sizeRange: string;
+    role: FlyRole;
+    confidence: 'high' | 'medium' | 'low';
+    notes: string;
+    alternates: string[];
+    category: string;
+    colors: string;
+    photoQuality: number;
+  };
+  tackleBox: {
+    id: string;
+    isNewEntry: boolean;
+    count: number;
+    photoUpdated: boolean;
+    previousPhotoQuality: number | null;
+  };
+  shoppingMatch: {
+    matched: boolean;
+    itemKey: string | null;
+  };
+};

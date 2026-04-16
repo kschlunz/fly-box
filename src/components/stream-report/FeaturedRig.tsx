@@ -1,6 +1,6 @@
-import type { Fly, Rig } from '../../data/types';
+import type { Fly, Rig, TackleBoxFly } from '../../data/types';
 
-type Props = { rig: Rig };
+type Props = { rig: Rig; tackleBoxFlies?: TackleBoxFly[] };
 
 const roleLabel: Record<Fly['role'], string> = {
   dry: 'TOP FLY (DRY)',
@@ -55,7 +55,26 @@ function FlyRow({
   );
 }
 
-export function FeaturedRig({ rig }: Props) {
+function normName(s: string): string {
+  return s.toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+function findHeroPhoto(rig: Rig, tackleFlies: TackleBoxFly[]): string | null {
+  if (!tackleFlies || tackleFlies.length === 0) return null;
+  for (const fly of rig.flies) {
+    const norm = normName(fly.name);
+    const match = tackleFlies.find((t) => {
+      const tn = normName(t.name);
+      return tn === norm || tn.includes(norm) || norm.includes(tn);
+    });
+    if (match) return match.primaryPhotoUrl;
+  }
+  return null;
+}
+
+export function FeaturedRig({ rig, tackleBoxFlies = [] }: Props) {
+  const heroPhoto = findHeroPhoto(rig, tackleBoxFlies);
+
   return (
     <div className="mx-4 bg-card-bg rounded-[16px] border border-card-border overflow-hidden">
       <div className="p-5 flex flex-col gap-4">
@@ -77,23 +96,29 @@ export function FeaturedRig({ rig }: Props) {
 
         <p className="text-[13px] italic text-text-secondary leading-relaxed">{rig.tip}</p>
       </div>
-      <div className="mx-4 mb-4 rounded-[12px] h-40 rig-photo-fallback flex items-center justify-center">
-        <svg
-          width="48"
-          height="48"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="#7fa898"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          opacity="0.55"
-        >
-          <path d="M12 3v14" />
-          <path d="M12 17a5 5 0 0 1 -5 -5" />
-          <circle cx="12" cy="3" r="1.5" />
-        </svg>
-      </div>
+      {heroPhoto ? (
+        <div className="mx-4 mb-4 rounded-[12px] h-40 overflow-hidden">
+          <img src={heroPhoto} alt={rig.title} className="w-full h-full object-cover" />
+        </div>
+      ) : (
+        <div className="mx-4 mb-4 rounded-[12px] h-40 rig-photo-fallback flex items-center justify-center">
+          <svg
+            width="48"
+            height="48"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#7fa898"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            opacity="0.55"
+          >
+            <path d="M12 3v14" />
+            <path d="M12 17a5 5 0 0 1 -5 -5" />
+            <circle cx="12" cy="3" r="1.5" />
+          </svg>
+        </div>
+      )}
     </div>
   );
 }

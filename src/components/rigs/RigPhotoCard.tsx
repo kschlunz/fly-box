@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { Rig } from '../../data/types';
+import type { Rig, TackleBoxFly } from '../../data/types';
 import { FlyPairingPills } from './FlyPairingPills';
 
 type Props = {
@@ -8,6 +8,7 @@ type Props = {
   onToggleSave: () => void;
   note: string;
   onNoteChange: (value: string) => void;
+  tackleBoxFlies?: TackleBoxFly[];
 };
 
 function HookPlaceholder() {
@@ -65,15 +66,53 @@ function ChevronIcon({ open }: { open: boolean }) {
   );
 }
 
-export function RigPhotoCard({ rig, isSaved, onToggleSave, note, onNoteChange }: Props) {
+function normName(s: string): string {
+  return s.toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+function findTacklePhoto(rig: Rig, tackleFlies: TackleBoxFly[]): string | null {
+  if (tackleFlies.length === 0) return null;
+  for (const fly of rig.flies) {
+    const norm = normName(fly.name);
+    const match = tackleFlies.find((t) => {
+      const tn = normName(t.name);
+      return tn === norm || tn.includes(norm) || norm.includes(tn);
+    });
+    if (match) return match.primaryPhotoUrl;
+  }
+  return null;
+}
+
+function inventoryStatus(rig: Rig, tackleFlies: TackleBoxFly[]): { present: number; total: number } {
+  if (tackleFlies.length === 0) return { present: 0, total: rig.flies.length };
+  let present = 0;
+  for (const fly of rig.flies) {
+    const norm = normName(fly.name);
+    if (tackleFlies.some((t) => {
+      const tn = normName(t.name);
+      return tn === norm || tn.includes(norm) || norm.includes(tn);
+    })) {
+      present++;
+    }
+  }
+  return { present, total: rig.flies.length };
+}
+
+export function RigPhotoCard({ rig, isSaved, onToggleSave, note, onNoteChange, tackleBoxFlies = [] }: Props) {
   const [expanded, setExpanded] = useState(false);
+  const heroPhoto = findTacklePhoto(rig, tackleBoxFlies);
+  const inv = inventoryStatus(rig, tackleBoxFlies);
 
   return (
     <article className="bg-card-bg rounded-[16px] border border-card-border overflow-hidden">
       <div className="relative">
-        <div className="w-full h-[200px] rig-photo-fallback flex items-center justify-center">
-          <HookPlaceholder />
-        </div>
+        {heroPhoto ? (
+          <img src={heroPhoto} alt={rig.title} className="w-full h-[200px] object-cover" />
+        ) : (
+          <div className="w-full h-[200px] rig-photo-fallback flex items-center justify-center">
+            <HookPlaceholder />
+          </div>
+        )}
         {rig.hot && (
           <span className="absolute top-3 left-3 bg-accent-red text-white text-[10px] font-semibold uppercase tracking-[0.14em] px-2.5 py-1 rounded-[14px]">
             Hot
@@ -98,6 +137,18 @@ export function RigPhotoCard({ rig, isSaved, onToggleSave, note, onNoteChange }:
             <StarIcon filled={isSaved} />
           </button>
         </div>
+
+        {inv.present > 0 && (
+          <span className={`self-start inline-flex px-2.5 py-1 rounded-[12px] text-[10px] uppercase tracking-[0.12em] font-semibold ${
+            inv.present === inv.total
+              ? 'bg-accent-green/10 text-accent-green border border-accent-green/20'
+              : 'bg-accent-amber/10 text-accent-amber border border-accent-amber/20'
+          }`}>
+            {inv.present === inv.total
+              ? 'In your box'
+              : `Missing ${inv.total - inv.present} fly${inv.total - inv.present > 1 ? 's' : ''}`}
+          </span>
+        )}
 
         {rig.description && (
           <p className="text-[14px] text-text-secondary leading-relaxed">{rig.description}</p>

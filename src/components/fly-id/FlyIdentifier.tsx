@@ -1,20 +1,12 @@
 import { useMemo, useRef, useState } from 'react';
-import type { FlyRole, Rig } from '../../data/types';
-
-type Confidence = 'high' | 'medium' | 'low';
-
-type IdentifyResult = {
-  name: string;
-  sizeRange: string;
-  role: FlyRole;
-  confidence: Confidence;
-  notes: string;
-  alternates: string[];
-};
+import type { IdentifyResponse, Rig } from '../../data/types';
 
 type Props = {
   rigs: Rig[];
   onClose: () => void;
+  onTackleBoxUpdated: () => void;
+  onShoppingChecked: (key: string) => void;
+  onViewTackleBox: () => void;
 };
 
 const MAX_DIMENSION = 1024;
@@ -58,17 +50,7 @@ function normalizeName(s: string): string {
   return s.toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
-function findMatchingRigs(rigs: Rig[], flyName: string): Rig[] {
-  const target = normalizeName(flyName).trim();
-  if (!target) return [];
-  return rigs.filter((r) =>
-    r.flies.some((f) => {
-      const n = normalizeName(f.name);
-      if (!n) return false;
-      return n === target || n.includes(target) || target.includes(n);
-    })
-  );
-}
+type Confidence = 'high' | 'medium' | 'low';
 
 function confidenceStyles(c: Confidence): { bg: string; text: string; label: string } {
   if (c === 'high') return { bg: 'bg-accent-green', text: 'text-header-text', label: 'High confidence' };
@@ -94,17 +76,24 @@ function CameraIcon() {
   );
 }
 
-export function FlyIdentifier({ rigs, onClose }: Props) {
+export function FlyIdentifier({ rigs, onClose, onTackleBoxUpdated, onShoppingChecked, onViewTackleBox }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<IdentifyResult | null>(null);
+  const [result, setResult] = useState<IdentifyResponse | null>(null);
 
-  const matches = useMemo(
-    () => (result ? findMatchingRigs(rigs, result.name) : []),
-    [result, rigs]
-  );
+  const matches = useMemo(() => {
+    if (!result) return [];
+    const target = normalizeName(result.identification.name).trim();
+    if (!target) return [];
+    return rigs.filter((r) =>
+      r.flies.some((f) => {
+        const n = normalizeName(f.name);
+        return n && (n === target || n.includes(target) || target.includes(n));
+      })
+    );
+  }, [result, rigs]);
 
   async function handleFile(file: File) {
     setError(null);
@@ -122,8 +111,12 @@ export function FlyIdentifier({ rigs, onClose }: Props) {
         const body = await res.json().catch(() => ({}));
         throw new Error(body.error || `Request failed (${res.status})`);
       }
-      const data = (await res.json()) as IdentifyResult;
+      const data = (await res.json()) as IdentifyResponse;
       setResult(data);
+      onTackleBoxUpdated();
+      if (data.shoppingMatch?.matched && data.shoppingMatch.itemKey) {
+        onShoppingChecked(data.shoppingMatch.itemKey);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Identification failed');
     } finally {
@@ -140,6 +133,11 @@ export function FlyIdentifier({ rigs, onClose }: Props) {
     });
     if (fileRef.current) fileRef.current.value = '';
   }
+
+  const id = result?.identification;
+  const tb = result?.tackleBox;
+  const shop = result?.shoppingMatch;
+  const conf = id ? confidenceStyles(id.confidence as Confidence) : null;
 
   return (
     <div className="fixed inset-0 z-50 bg-page-bg flex flex-col">
@@ -169,7 +167,7 @@ export function FlyIdentifier({ rigs, onClose }: Props) {
                 What fly is that?
               </h2>
               <p className="text-[14px] text-text-secondary max-w-[280px]">
-                Snap a clear, well-lit photo of a single fly. We'll identify the pattern and match it to your rigs.
+                Snap a clear, well-lit photo of a single fly. We'll identify and save it to your tackle box.
               </p>
             </div>
             <button
@@ -199,48 +197,66 @@ export function FlyIdentifier({ rigs, onClose }: Props) {
 
         {error && (
           <div className="bg-card-bg rounded-[16px] border border-accent-red p-4">
-            <div className="text-[11px] uppercase tracking-[0.14em] font-semibold text-accent-red">
-              Error
-            </div>
+            <div className="text-[11px] uppercase tracking-[0.14em] font-semibold text-accent-red">Error</div>
             <div className="text-[14px] text-text-primary mt-1">{error}</div>
           </div>
         )}
 
-        {result && (
+        {id && conf && (
           <div className="flex flex-col gap-4">
+            {tb && (
+              <div className={`rounded-[12px] px-4 py-3 text-[13px] font-medium ${
+                tb.isNewEntry
+                  ? 'bg-accent-green/10 text-accent-green border border-accent-green/20'
+                  : tb.photoUpdated
+                    ? 'bg-accent-amber/10 text-accent-amber border border-accent-amber/20'
+                    : 'bg-accent-cream text-text-secondary border border-card-border'
+              }`}>
+                {tb.isNewEntry && 'Added to your tackle box'}
+                {!tb.isNewEntry && tb.photoUpdated && (
+                  <>Updated photo in tackle box (quality: {tb.previousPhotoQuality} → {id.photoQuality})</>
+                )}
+                {!tb.isNewEntry && !tb.photoUpdated && `Already in your tackle box (×${tb.count})`}
+              </div>
+            )}
+
+            {shop?.matched && (
+              <div className="rounded-[12px] px-4 py-3 bg-accent-green/10 border border-accent-green/20 text-[13px] font-medium text-accent-green">
+                ✓ Checked off shopping list
+              </div>
+            )}
+
             <div className="bg-card-bg rounded-[16px] border border-card-border p-5 flex flex-col gap-3">
               <div className="flex items-center justify-between">
-                <span
-                  className={`inline-flex px-3 py-1 rounded-[14px] text-[10px] uppercase tracking-[0.14em] font-semibold ${confidenceStyles(result.confidence).bg} ${confidenceStyles(result.confidence).text}`}
-                >
-                  {confidenceStyles(result.confidence).label}
+                <span className={`inline-flex px-3 py-1 rounded-[14px] text-[10px] uppercase tracking-[0.14em] font-semibold ${conf.bg} ${conf.text}`}>
+                  {conf.label}
                 </span>
                 <span className="text-[10px] uppercase tracking-[0.16em] text-text-muted font-semibold">
-                  {result.role}
+                  {id.role}
                 </span>
               </div>
               <div>
                 <h2 className="font-display text-[24px] font-semibold text-text-primary leading-tight">
-                  {result.name}
+                  {id.name}
                 </h2>
-                <div className="text-[12px] text-text-muted font-medium mt-0.5">
-                  {result.sizeRange}
-                </div>
+                <div className="text-[12px] text-text-muted font-medium mt-0.5">{id.sizeRange}</div>
               </div>
-              <p className="text-[14px] text-text-secondary leading-relaxed">{result.notes}</p>
+              <p className="text-[14px] text-text-secondary leading-relaxed">{id.notes}</p>
+              {id.colors && (
+                <div className="text-[12px] text-text-muted">
+                  <span className="font-semibold">Colors:</span> {id.colors}
+                </div>
+              )}
             </div>
 
-            {result.alternates.length > 0 && (
+            {id.alternates.length > 0 && (
               <div className="bg-card-bg rounded-[16px] border border-card-border p-5">
                 <div className="text-[10px] uppercase tracking-[0.18em] font-semibold text-text-muted mb-2">
                   Could also be
                 </div>
                 <ul className="flex flex-wrap gap-2">
-                  {result.alternates.map((alt) => (
-                    <li
-                      key={alt}
-                      className="px-3 py-1 rounded-[14px] bg-accent-cream text-text-secondary text-[12px] font-medium"
-                    >
+                  {id.alternates.map((alt) => (
+                    <li key={alt} className="px-3 py-1 rounded-[14px] bg-accent-cream text-text-secondary text-[12px] font-medium">
                       {alt}
                     </li>
                   ))}
@@ -253,9 +269,7 @@ export function FlyIdentifier({ rigs, onClose }: Props) {
                 In your rigs
               </div>
               {matches.length === 0 ? (
-                <div className="text-[13px] text-text-secondary italic">
-                  No current rig uses this fly.
-                </div>
+                <div className="text-[13px] text-text-secondary italic">No current rig uses this fly.</div>
               ) : (
                 <ul className="flex flex-col gap-2">
                   {matches.map((r) => (
@@ -268,13 +282,24 @@ export function FlyIdentifier({ rigs, onClose }: Props) {
               )}
             </div>
 
-            <button
-              type="button"
-              onClick={reset}
-              className="w-full min-h-[48px] rounded-[12px] border border-card-border bg-card-bg text-text-primary text-[14px] font-semibold uppercase tracking-[0.1em]"
-            >
-              Identify Another
-            </button>
+            <div className="flex gap-2">
+              {tb && (
+                <button
+                  type="button"
+                  onClick={onViewTackleBox}
+                  className="flex-1 min-h-[48px] rounded-[12px] bg-accent-green text-header-text text-[14px] font-semibold uppercase tracking-[0.1em]"
+                >
+                  View in Tackle Box
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={reset}
+                className="flex-1 min-h-[48px] rounded-[12px] border border-card-border bg-card-bg text-text-primary text-[14px] font-semibold uppercase tracking-[0.1em]"
+              >
+                Identify Another
+              </button>
+            </div>
           </div>
         )}
       </div>

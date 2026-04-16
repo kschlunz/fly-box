@@ -3,9 +3,11 @@ import { categoryLabels, categoryOrder } from './data/defaults';
 import type { Rig, ShoppingItem } from './data/types';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { useSupabase } from './hooks/useSupabase';
+import { useTackleBox } from './hooks/useTackleBox';
 
 import { AdminGate } from './components/layout/AdminGate';
 import { BottomNav, type Tab } from './components/layout/BottomNav';
+import { TackleBoxScreen } from './components/tackle-box/TackleBoxScreen';
 
 import { HeroHeader } from './components/stream-report/HeroHeader';
 import { WaterVitals } from './components/stream-report/WaterVitals';
@@ -68,6 +70,7 @@ export default function App() {
   );
 
   const { conditions, rigs, shoppingList, gear } = useSupabase();
+  const { flies: tackleBoxFlies, loading: tackleBoxLoading, refresh: refreshTackleBox } = useTackleBox();
 
   useEffect(() => {
     const onHash = () => setRoute(getRoute());
@@ -150,7 +153,7 @@ export default function App() {
           <section className="px-4 pt-4 pb-28 flex flex-col gap-4">
             <ActiveHatches hatches={conditions.hatches} />
             <StrategyCard conditions={conditions} onViewForecast={scrollToForecast} />
-            {featuredRig && <FeaturedRig rig={featuredRig} />}
+            {featuredRig && <FeaturedRig rig={featuredRig} tackleBoxFlies={tackleBoxFlies} />}
             <ForecastCard />
           </section>
         </>
@@ -185,6 +188,7 @@ export default function App() {
                   onToggleSave={() => toggleFavorite(rig.id)}
                   note={notes[rig.id] ?? ''}
                   onNoteChange={(v) => setNote(rig.id, v)}
+                  tackleBoxFlies={tackleBoxFlies}
                 />
               ))
             )}
@@ -230,6 +234,16 @@ export default function App() {
         </>
       )}
 
+      {tab === 'tackle-box' && (
+        <TackleBoxScreen
+          flies={tackleBoxFlies}
+          rigs={rigs}
+          loading={tackleBoxLoading}
+          onRefresh={refreshTackleBox}
+          onOpenCamera={() => setShowIdentifier(true)}
+        />
+      )}
+
       <button
         type="button"
         aria-label="Identify a fly"
@@ -240,10 +254,19 @@ export default function App() {
         <CameraIcon />
       </button>
 
-      <BottomNav active={tab} onChange={setTab} />
+      <BottomNav active={tab} onChange={setTab} tackleBoxCount={tackleBoxFlies.length} />
 
       {showIdentifier && (
-        <FlyIdentifier rigs={rigs} onClose={() => setShowIdentifier(false)} />
+        <FlyIdentifier
+          rigs={rigs}
+          onClose={() => setShowIdentifier(false)}
+          onTackleBoxUpdated={refreshTackleBox}
+          onShoppingChecked={(key) => setShoppingChecks((prev) => ({ ...prev, [key]: true }))}
+          onViewTackleBox={() => {
+            setShowIdentifier(false);
+            setTab('tackle-box');
+          }}
+        />
       )}
     </div>
   );
