@@ -1,0 +1,98 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500;1,600;1,700&display=swap');
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Playfair Display', ui-serif, Georgia, serif;
+
+  --color-header-bg: #1a2e24;
+  --color-header-text: #f2efe8;
+  --color-header-muted: #8aab98;
+  --color-header-card-bg: rgba(255, 255, 255, 0.07);
+
+  --color-page-bg: #f5f2ec;
+  --color-card-bg: #ffffff;
+  --color-card-border: #e8e4dc;
+  --color-metric-card-bg: #f5f2ec;
+
+  --color-text-primary: #2c2a25;
+  --color-text-secondary: #6b6860;
+  --color-text-muted: #a09a8e;
+
+  --color-accent-green: #2c5a42;
+  --color-accent-sage: #7fa898;
+  --color-accent-cream: #f0ebe0;
+  --color-accent-red: #c45a4a;
+  --color-accent-amber: #c8a020;
+
+  --color-fly-dry-bg: #e8f0f7;
+  --color-fly-dry-border: #b8d4ea;
+  --color-fly-dry-text: #1a5a8e;
+  --color-fly-dropper-bg: #e5f2ec;
+  --color-fly-dropper-border: #a8d4bc;
+  --color-fly-dropper-text: #1a6b4a;
+  --color-fly-soft-bg: #ece0f4;
+  --color-fly-soft-border: #ceb8de;
+  --color-fly-soft-text: #5a3590;
+  --color-fly-streamer-bg: #f6e4d8;
+  --color-fly-streamer-border: #deba9e;
+  --color-fly-streamer-text: #8e3a14;
+
+  --color-section-dry-dropper-bg: #d6e6f5;
+  --color-section-dry-dropper-text: #1e5a94;
+  --color-section-euro-bg: #d4ece2;
+  --color-section-euro-text: #1a6b4a;
+  --color-section-soft-bg: #e8ddf5;
+  --color-section-soft-text: #5a3a8a;
+  --color-section-streamer-bg: #f5ddd3;
+  --color-section-streamer-text: #9e3e1a;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background-color: var(--color-page-bg);
+  color: var(--color-text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button {
+  font-family: inherit;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  color: inherit;
+}
+
+textarea,
+input,
+select {
+  font-family: inherit;
+}
+
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@utility hero-gradient {
+  background-image: linear-gradient(
+    to bottom,
+    rgba(26, 46, 36, 0.55) 0%,
+    rgba(26, 46, 36, 0.95) 100%
+  );
+}
+
+@utility rig-photo-fallback {
+  background-image: linear-gradient(135deg, #d4e3d8 0%, #f0ebe0 100%);
+}
