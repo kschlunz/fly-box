@@ -9,7 +9,10 @@ import { getStoredAdminPass } from '../layout/AdminGate';
 import { ConditionsEditor } from './ConditionsEditor';
 import { RigEditor } from './RigEditor';
 
+type SourceOption = 'auto' | 'DRO' | 'Headwaters' | 'Other';
+
 type ParseResponse = {
+  source?: string;
   conditions: Conditions;
   rigs: Rig[];
   shopping: ShoppingItem[];
@@ -23,6 +26,8 @@ const inputClass =
   'w-full min-h-[44px] px-3 py-2 rounded-[10px] border border-card-border bg-card-bg text-[14px] text-text-primary focus:outline-none focus:border-accent-sage';
 
 export function AdminIntake() {
+  const [source, setSource] = useState<SourceOption>('auto');
+  const [detectedSource, setDetectedSource] = useState<string | null>(null);
   const [report, setReport] = useState('');
   const [parsing, setParsing] = useState(false);
   const [parseError, setParseError] = useState<string | null>(null);
@@ -45,6 +50,7 @@ export function AdminIntake() {
         body: JSON.stringify({
           report,
           currentDate: new Date().toISOString().slice(0, 10),
+          source,
         }),
       });
       if (!res.ok) {
@@ -52,6 +58,7 @@ export function AdminIntake() {
         throw new Error(body.error || `Parse failed (${res.status})`);
       }
       const data = (await res.json()) as ParseResponse;
+      setDetectedSource(data.source ?? null);
       setConditions(data.conditions);
       setRigs(data.rigs);
       setShopping(data.shopping);
@@ -130,6 +137,42 @@ export function AdminIntake() {
 
       <main className="px-4 py-5 flex flex-col gap-5 pb-24">
         <section className="bg-card-bg rounded-[16px] border border-card-border p-4 flex flex-col gap-3">
+          <div className="flex flex-col gap-3">
+            <label className="flex flex-col gap-1">
+              <span className="text-[10px] uppercase tracking-[0.14em] font-semibold text-text-muted">
+                Report Source
+              </span>
+              <select
+                value={source}
+                onChange={(e) => setSource(e.target.value as SourceOption)}
+                className={inputClass}
+              >
+                <option value="auto">Auto-detect</option>
+                <option value="DRO">Davidson River Outfitters</option>
+                <option value="Headwaters">Headwaters Outfitters</option>
+                <option value="Other">Other / Manual</option>
+              </select>
+            </label>
+            <div className="flex gap-2">
+              <a
+                href="https://www.davidsonflyfishing.com/stream-report"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 min-h-[40px] rounded-[10px] border border-card-border bg-accent-cream text-text-secondary text-[11px] uppercase tracking-[0.1em] font-semibold flex items-center justify-center gap-1"
+              >
+                Open DRO report ↗
+              </a>
+              <a
+                href="https://headwatersoutfitters.com/river-reports/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 min-h-[40px] rounded-[10px] border border-card-border bg-accent-cream text-text-secondary text-[11px] uppercase tracking-[0.1em] font-semibold flex items-center justify-center gap-1"
+              >
+                Open Headwaters ↗
+              </a>
+            </div>
+          </div>
+
           <div className="flex items-baseline justify-between">
             <h2 className="text-[11px] uppercase tracking-[0.16em] font-semibold text-text-muted">
               Paste report
@@ -155,6 +198,14 @@ export function AdminIntake() {
             <div className="text-[13px] text-accent-red">{parseError}</div>
           )}
         </section>
+
+        {detectedSource && (
+          <div className="flex items-center gap-2">
+            <span className="inline-flex px-3 py-1 rounded-[14px] bg-accent-green text-header-text text-[10px] uppercase tracking-[0.14em] font-semibold">
+              Parsed from: {detectedSource === 'DRO' ? 'Davidson River Outfitters' : detectedSource === 'Headwaters' ? 'Headwaters Outfitters' : 'Other'}
+            </span>
+          </div>
+        )}
 
         {conditions && (
           <ConditionsEditor value={conditions} onChange={setConditions} />
