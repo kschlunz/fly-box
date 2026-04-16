@@ -53,8 +53,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const adminPass = process.env.ADMIN_PASS;
   const provided = req.headers['x-admin-pass'];
-  if (!adminPass || provided !== adminPass) {
-    res.status(401).json({ error: 'Unauthorized' });
+  if (!adminPass) {
+    res.status(401).json({ error: 'ADMIN_PASS env var not set on server' });
+    return;
+  }
+  if (!provided) {
+    res.status(401).json({ error: 'x-admin-pass header missing from request' });
+    return;
+  }
+  if (provided !== adminPass) {
+    res.status(401).json({ error: 'Passphrase mismatch' });
     return;
   }
 
