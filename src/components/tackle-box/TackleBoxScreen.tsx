@@ -115,20 +115,30 @@ export function TackleBoxScreen({ flies, rigs, loading, onRefresh, onOpenCamera 
   };
 
   function handleDelete(id: string) {
-    const pass = sessionStorage.getItem('davidson-fly-box-admin');
+    const pass = sessionStorage.getItem('davidson-fly-box-admin') || localStorage.getItem('davidson-admin-pass');
     if (!pass) {
-      setDetailId(null);
+      const entered = window.prompt('Admin passphrase:');
+      if (!entered) return;
+      localStorage.setItem('davidson-admin-pass', entered);
+      doDelete(id, entered);
       return;
     }
+    doDelete(id, pass);
+  }
+
+  function doDelete(id: string, pass: string) {
     fetch(`/api/tackle-box/${id}`, {
       method: 'DELETE',
       headers: { 'x-admin-pass': pass },
     })
-      .then(() => {
+      .then((r) => {
+        if (!r.ok) throw new Error('Delete failed');
         setDetailId(null);
         onRefresh();
       })
-      .catch(() => {});
+      .catch(() => {
+        localStorage.removeItem('davidson-admin-pass');
+      });
   }
 
   return (
